@@ -1,0 +1,5 @@
+[[watched_folders]]
+path = "~/Google Drive/My Drive/mail_in"
+
+[translate]
+bin = "/usr/local/bin/translate"
