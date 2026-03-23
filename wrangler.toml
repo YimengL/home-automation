@@ -1,0 +1,8 @@
+name = "home-automation"
+compatibility_date = "2026-03-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "home-automation"
+database_id = "3a8f2bbc-d9f6-444d-b0a9-5b2985646ac2"
+migrations_dir = "migrations"

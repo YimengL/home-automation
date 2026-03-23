@@ -15,6 +15,9 @@ SUPPORTED_VERSIONS = {1}
 
 class JSONHandler(FileSystemEventHandler):
 
+    def __init__(self, config: dict) -> None:
+        self.config = config
+
 
     def on_created(self, event: FileCreatedEvent) -> None:
         self._handle(event.src_path)
@@ -40,11 +43,11 @@ class JSONHandler(FileSystemEventHandler):
             return
         if doc.get("schema_version") not in SUPPORTED_VERSIONS:
             logger.warning("Unknown schema_version in %s: %s, attempting anyway", path.name, doc.get("schema_version"))
-        downstream.process(doc)
+        downstream.process(doc, self.config)
 
         
-def start(folders: list[str]) -> Observer:
-    handler = JSONHandler()
+def start(folders: list[str], config: dict) -> Observer:
+    handler = JSONHandler(config)
     observer = Observer()
     for folder in folders:
         expanded = str(Path(folder).expanduser())
