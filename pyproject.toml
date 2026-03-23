@@ -1,14 +1,15 @@
 [project]
-name = "home_automation"
+name = "home-automation"
 version = "0.1.0"
 requires-python = ">=3.11"                                                                    
 dependencies = [
-    "watchdog>=4.0",                                                                          
+    "watchdog>=4.0",
+    "cloudflare>=4.3",
 ]                                                                                           
       
 
 [project.scripts]
-hom-automation = "home_automation.main:main"
+home-automation = "home_automation.main:main"
 
 [build-system]
 requires = ["hatchling"]                                                                      

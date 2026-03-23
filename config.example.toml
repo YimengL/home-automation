@@ -3,3 +3,8 @@ path = "~/Google Drive/My Drive/mail_in"
 
 [translate]
 bin = "/usr/local/bin/translate"
+
+[cloudflare]
+account_id = "cloudflare-account-id"
+d1_database_id = "3a8f2bbc-d9f6-444d-b0a9-5b2985646ac2"
+api_token_keychain_service = "cloudflare-home-automation"

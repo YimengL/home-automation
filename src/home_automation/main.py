@@ -2,7 +2,6 @@ import argparse
 import logging
 import signal
 import json
-import sys
 import subprocess
 import tomllib
 from pathlib import Path
@@ -16,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 def load_config() -> dict:
-    """Load watched folder config from ~/.config/home_automation/config.toml"""
-    config_path = Path("~/.config/home_automation/config.toml").expanduser()
+    """Load watched folder config from ~/.config/home-automation/config.toml"""
+    config_path = Path("~/.config/home-automation/config.toml").expanduser()
     with open(config_path, "rb") as f:
         return tomllib.load(f)
 
@@ -32,8 +31,8 @@ def cmd_watch_pdf(folders: list[str], translate_bin: str) -> None:
         observer.stop()
 
 
-def cmd_watch_json(folders: list[str]) -> None:
-    observer = json_watcher.start(folders)
+def cmd_watch_json(folders: list[str], config: dict) -> None:
+    observer = json_watcher.start(folders, config)
     signal.signal(signal.SIGTERM, lambda *_: observer.stop())
     try:
         observer.join()
@@ -46,18 +45,18 @@ def cmd_retranslate(pdf_path: str, translate_bin: str) -> None:
     subprocess.run([translate_bin, pdf_path], check=True)
 
 
-def cmd_reingest(json_path: str) -> None:
+def cmd_reingest(json_path: str, config: dict) -> None:
     """Run downstream directly on a proc_*.json, bypassing the watchdog."""
     doc = json.loads(Path(json_path).read_text())
-    downstream.process(doc)
+    downstream.process(doc, config)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="home_automation")
+    parser = argparse.ArgumentParser(prog="home-automation")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("watch_pdf")
-    sub.add_parser("watch_json")
+    sub.add_parser("watch-pdf")
+    sub.add_parser("watch-json")
 
     p = sub.add_parser("retranslate")
     p.add_argument("pdf_path")
@@ -70,11 +69,11 @@ def main() -> None:
     folders = [f["path"] for f in config["watched_folders"]]
     translate_bin = config["translate"]["bin"]
 
-    if args.cmd == "watch_pdf":
+    if args.cmd == "watch-pdf":
         cmd_watch_pdf(folders, translate_bin)
-    elif args.cmd == "watch_json":
-        cmd_watch_json(folders)
+    elif args.cmd == "watch-json":
+        cmd_watch_json(folders, config)
     elif args.cmd == "retranslate":
         cmd_retranslate(args.pdf_path, translate_bin)
     elif args.cmd == "reingest":
-        cmd_reingest(args.json_path)
+        cmd_reingest(args.json_path, config)
