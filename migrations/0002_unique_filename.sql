@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_mail_documents_filename ON mail_documents(filename);
