@@ -43,7 +43,7 @@ class JSONHandler(FileSystemEventHandler):
             return
         if doc.get("schema_version") not in SUPPORTED_VERSIONS:
             logger.warning("Unknown schema_version in %s: %s, attempting anyway", path.name, doc.get("schema_version"))
-        downstream.process(doc, self.config)
+        downstream.process(doc, path.with_suffix(".pdf"), self.config)
 
         
 def start(folders: list[str], config: dict) -> Observer:

@@ -1,25 +1,15 @@
 import json
 import logging
-import subprocess
 
 from cloudflare import Cloudflare
+from home_automation import keychain
 
 logger = logging.getLogger(__name__)
 
 
-def _get_token(keychain_service: str) -> str:
-    """Read Cloudflare API token from Mac Keychain"""
-    result = subprocess.run(
-        ["security", "find-generic-password", "-s", keychain_service, "-w"],
-        capture_output=True, text=True, check=True
-    )
-
-    return result.stdout.strip()
-
-
 def upsert(doc: dict, account_id: str, database_id: str, keychain_service: str) -> None:
     """Insert or replace a mail_documents record from sidecar JSON."""
-    client = Cloudflare(api_token=_get_token(keychain_service))
+    client = Cloudflare(api_token=keychain.get_token(keychain_service))
     client.d1.database.query(
         account_id=account_id,
         database_id=database_id,
