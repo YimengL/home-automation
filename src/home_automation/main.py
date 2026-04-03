@@ -1,79 +1,69 @@
 import argparse
 import logging
-import signal
+
 import json
+import os
 import subprocess
-import tomllib
 from pathlib import Path
 
 
-from home_automation import pdf_watcher, json_watcher, downstream
+from home_automation import downstream, watcher
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def load_config() -> dict:
-    """Load watched folder config from ~/.config/home-automation/config.toml"""
-    config_path = Path("~/.config/home-automation/config.toml").expanduser()
-    with open(config_path, "rb") as f:
-        return tomllib.load(f)
+def build_config() -> dict:
+    return {
+        "cloudflare": {
+            "account_id": os.environ["CF_ACCOUNT_ID"],
+            "d1_database_id": os.environ["CF_D1_DATABASE_ID"],
+            "api_token_keychain_service": "cloudflare-home-automation",
+        },
+        "r2": {
+            "bucket_name": os.environ["R2_BUCKET_NAME"],
+            "key_id_keychain_service": "r2-home-automation-mail-key-id",
+            "secret_keychain_service": "r2-home-automation-mail-secret",
+        },
+        "telegram": {
+            "chat_id": os.environ["TG_CHAT_ID"],
+            "bot_token_keychain_service": "ym_mail_bot",
+        }
+    }
 
 
-def cmd_watch_pdf(folders: list[str], translate_bin: str) -> None:
-    observer = pdf_watcher.start(folders, translate_bin)
-    # Graceful shutdown: launchd sends SIGTERM, terminal sends KeyboardInterrupt
-    signal.signal(signal.SIGTERM, lambda *_: observer.stop())
-    try:
-        observer.join()
-    except KeyboardInterrupt:
-        observer.stop()
-
-
-def cmd_watch_json(folders: list[str], config: dict) -> None:
-    observer = json_watcher.start(folders, config)
-    signal.signal(signal.SIGTERM, lambda *_: observer.stop())
-    try:
-        observer.join()
-    except KeyboardInterrupt:
-        observer.stop()
-
-
-def cmd_retranslate(pdf_path: str, translate_bin: str) -> None:
+def cmd_retranslate(pdf_path: str) -> None:
     """Run translate directly on a PDF, bypassing the watchdog."""
-    subprocess.run([translate_bin, pdf_path], check=True)
+    subprocess.run(["/usr/local/bin/translate", pdf_path], check=True)
 
 
-def cmd_reingest(json_path: str, config: dict) -> None:
-    """Run downstream directly on a proc_*.json, bypassing the watchdog."""
-    doc = json.loads(Path(json_path).read_text())
-    downstream.process(doc, config)
+def cmd_reprocess(json_path) -> None:
+    path = Path(json_path)
+    doc = json.loads(path.read_text())
+    downstream.process(doc, path.with_suffix(".pdf"), build_config())
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="home-automation")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("watch-pdf")
-    sub.add_parser("watch-json")
+    p = sub.add_parser("watch")
+    p.add_argument("folder", nargs="?", default=os.environ.get("WATCH_FOLDER"))
 
     p = sub.add_parser("retranslate")
     p.add_argument("pdf_path")
 
-    p = sub.add_parser("reingest")
+    p = sub.add_parser("reprocess")
     p.add_argument("json_path")
 
     args = parser.parse_args()
-    config = load_config()
-    folders = [f["path"] for f in config["watched_folders"]]
-    translate_bin = config["translate"]["bin"]
 
-    if args.cmd == "watch-pdf":
-        cmd_watch_pdf(folders, translate_bin)
-    elif args.cmd == "watch-json":
-        cmd_watch_json(folders, config)
+    if args.cmd == "watch":
+        if not args.folder:
+            parser.error("folder argument or WATCH_FOLDER env var is required")
+        watcher.start(args.folder, build_config())
     elif args.cmd == "retranslate":
-        cmd_retranslate(args.pdf_path, translate_bin)
-    elif args.cmd == "reingest":
-        cmd_reingest(args.json_path, config)
+        cmd_retranslate(args.pdf_path)
+    elif args.cmd == "reprocess":
+        cmd_reprocess(args.json_path)
