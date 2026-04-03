@@ -1,0 +1,4 @@
+cloudflare>=4.3
+boto3>=1.34
+requests>=2.31
+watchdog>=4.0
