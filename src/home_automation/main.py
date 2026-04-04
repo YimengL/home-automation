@@ -67,3 +67,7 @@ def main() -> None:
         cmd_retranslate(args.pdf_path)
     elif args.cmd == "reprocess":
         cmd_reprocess(args.json_path)
+
+
+if __name__ == "__main__":
+    main()
