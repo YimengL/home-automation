@@ -30,6 +30,10 @@ def _format_message(doc: dict, presigned_url: str) -> str:
         lines.append(f"💰 {doc['amount']}")
     if doc.get("deadline"):
         lines.append(f"📅 Due: {doc['deadline']}")
+    if doc.get("action_items"):
+        lines.append("")
+        for item in doc["action_items"]:
+            lines.append(f"✅ {item}")
     if doc.get("summary_short"):
         lines.append(f"\n{doc['summary_short']}")
     lines.append(f"\n📄 [View PDF]({presigned_url})")
