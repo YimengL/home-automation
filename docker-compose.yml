@@ -1,20 +1,27 @@
 services:
   pdf-watch:
-    image: ghcr.io/yimengl/private-pdf-translator:latest
+    image: ghcr.io/yimengl/private-pdf-translator:1.0.1
+    platform: linux/amd64
+    restart: unless-stopped
     command: watch /data
     volumes:
-      - ${WATCH_FOLDER}:/data
+      - ${HOME}/gdrive/mail_in:/data
     environment:
       - ANTHROPIC_API_KEY
       - DEEPL_API_KEY
-  
+
   json-watch:
     build: .
+    restart: unless-stopped
     command: watch /data
     volumes:
-      - ${WATCH_FOLDER}:/data
+      - ${HOME}/gdrive/mail_in:/data
     environment:
       - CF_ACCOUNT_ID
       - CF_D1_DATABASE_ID
       - R2_BUCKET_NAME
       - TG_CHAT_ID
+      - CLOUDFLARE_HOME_AUTOMATION
+      - R2_HOME_AUTOMATION_MAIL_KEY_ID
+      - R2_HOME_AUTOMATION_MAIL_SECRET
+      - YM_MAIL_BOT
