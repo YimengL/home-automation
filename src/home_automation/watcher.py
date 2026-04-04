@@ -2,8 +2,9 @@ import json
 import logging
 import signal
 from pathlib import Path
+import threading
 
-from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler
+from watchdog.events import FileCreatedEvent, FileMovedEvent, FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver
 from home_automation import downstream
 
@@ -27,6 +28,10 @@ class FolderHandler(FileSystemEventHandler):
         if not path.name.startswith("proc_"):
             return
         logger.info("New JSON file detected: %s", path)
+        threading.Thread(target=self._process, args=(path,), daemon=True).start()
+
+    
+    def _process(self, path: Path) -> None:
         try:
             doc = json.loads(path.read_text())
         except (json.JSONDecodeError, OSError) as e:
@@ -37,14 +42,12 @@ class FolderHandler(FileSystemEventHandler):
         downstream.process(doc, path.with_suffix(".pdf"), self.config)
 
     
-
-    
     def on_created(self, event: FileCreatedEvent) -> None:
         self._handle(event.src_path)
 
     
-    def on_modified(self, event: FileModifiedEvent) -> None:
-        self._handle(event.src_path)
+    def on_moved(self, event: FileMovedEvent) -> None:
+        self._handle(event.dest_path)
 
 
 def start(folder: str, config: dict) -> None:
