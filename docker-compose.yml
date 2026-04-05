@@ -1,7 +1,6 @@
 services:
-  pdf-watch:
-    image: ghcr.io/yimengl/private-pdf-translator:1.0.1
-    platform: linux/amd64
+  watch:
+    build: .
     restart: unless-stopped
     command: watch /data
     volumes:
@@ -9,14 +8,6 @@ services:
     environment:
       - ANTHROPIC_API_KEY
       - DEEPL_API_KEY
-
-  json-watch:
-    build: .
-    restart: unless-stopped
-    command: watch /data
-    volumes:
-      - ${HOME}/gdrive/mail_in:/data
-    environment:
       - CF_ACCOUNT_ID
       - CF_D1_DATABASE_ID
       - R2_BUCKET_NAME
