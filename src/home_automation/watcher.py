@@ -4,9 +4,11 @@ import signal
 from pathlib import Path
 import threading
 
+import pipeline
 from watchdog.events import FileCreatedEvent, FileMovedEvent, FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver
 from home_automation import downstream
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,8 @@ SUPPORTED_VERSIONS = {1}
 
 
 class FolderHandler(FileSystemEventHandler):
+
+    _sem = threading.Semaphore(1)  # serialize PDF translations to avoid OOM
 
     def __init__(self, config: dict) -> None:
         self.config = config
@@ -41,13 +45,32 @@ class FolderHandler(FileSystemEventHandler):
             logger.warning("Unknown schema_version in %s, attempting anyway", path.name)
         downstream.process(doc, path.with_suffix(".pdf"), self.config)
 
-    
+
+    def _handle_pdf(self, str_path: str) -> None:
+        path = Path(str_path)
+        if path.suffix.lower() != ".pdf" or not path.name.startswith("ori_"):
+            return
+        logger.info("New PDF detected: %s", path)
+        threading.Thread(target=self._process_pdf, args=(path,), daemon=True).start()
+
+    def _process_pdf(self, path: Path) -> None:
+        with FolderHandler._sem:
+            output_path = pipeline.derive_output_path(path)
+            pipeline.main(str(path), str(output_path))
+
+
     def on_created(self, event: FileCreatedEvent) -> None:
         self._handle(event.src_path)
+        self._handle_pdf(event.src_path)
+    
+
+    def on_modified(self, event) -> None:
+        self._handle_pdf(event.src_path)
 
     
     def on_moved(self, event: FileMovedEvent) -> None:
         self._handle(event.dest_path)
+        self._handle_pdf(event.dest_path)
 
 
 def start(folder: str, config: dict) -> None:
