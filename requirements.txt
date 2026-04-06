@@ -2,4 +2,4 @@ cloudflare>=4.3
 boto3>=1.34
 requests>=2.31
 watchdog>=4.0
-private-pdf-translator @ git+https://github.com/YimengL/private-pdf-translator.git@v1.0.5
+private-pdf-translator @ git+https://github.com/YimengL/private-pdf-translator.git@v1.0.6

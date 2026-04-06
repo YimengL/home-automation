@@ -62,7 +62,9 @@ def main() -> None:
     if args.cmd == "watch":
         if not args.folder:
             parser.error("folder argument or WATCH_FOLDER env var is required")
-        watcher.start(args.folder, build_config())
+        config = build_config()
+        config["watch_folder"] = args.folder
+        watcher.start(args.folder, config)
     elif args.cmd == "retranslate":
         cmd_retranslate(args.pdf_path)
     elif args.cmd == "reprocess":
