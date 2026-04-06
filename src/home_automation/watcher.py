@@ -21,6 +21,7 @@ class FolderHandler(FileSystemEventHandler):
 
     def __init__(self, config: dict) -> None:
         self.config = config
+        self.watch_root = Path(config["watch_folder"]).expanduser().resolve()
 
 
     def _handle(self, str_path: str) -> None:
@@ -70,7 +71,15 @@ class FolderHandler(FileSystemEventHandler):
     
     def on_moved(self, event: FileMovedEvent) -> None:
         self._handle(event.dest_path)
-        self._handle_pdf(event.dest_path)
+        src = Path(event.src_path).resolve()
+        dest = Path(event.dest_path)
+        renamed_to_ori = dest.name.startswith("ori_") and not src.name.startswith("ori_")
+        same_parent = src.parent.resolve() == dest.parent.resolve()
+        moved_in = not src.is_relative_to(self.watch_root)
+        if (renamed_to_ori and same_parent) or moved_in:
+            self._handle_pdf(event.dest_path)
+        else:
+            logger.debug("Ignored move: %s → %s (internal reorganization)", src.name, dest.name)
 
 
 def start(folder: str, config: dict) -> None:
