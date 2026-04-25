@@ -45,6 +45,9 @@ class FolderHandler(FileSystemEventHandler):
         if doc.get("schema_version") not in SUPPORTED_VERSIONS:
             logger.warning("Unknown schema_version in %s, attempting anyway", path.name)
         downstream.process(doc, path.with_suffix(".pdf"), self.config)
+        done_path = path.with_name("done_" + path.name[len("proc_"):])
+        path.rename(done_path)
+        logger.info("Renamed %s -> %s", path.name, done_path.name)
 
 
     def _handle_pdf(self, str_path: str) -> None:
