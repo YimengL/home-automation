@@ -1,6 +1,7 @@
 import json
 import logging
 import signal
+import time
 from pathlib import Path
 import threading
 
@@ -21,7 +22,6 @@ class FolderHandler(FileSystemEventHandler):
 
     def __init__(self, config: dict) -> None:
         self.config = config
-        self.watch_root = Path(config["watch_folder"]).expanduser().resolve()
 
 
     def _handle(self, str_path: str) -> None:
@@ -51,10 +51,19 @@ class FolderHandler(FileSystemEventHandler):
         path = Path(str_path)
         if path.suffix.lower() != ".pdf" or not path.name.startswith("ori_"):
             return
+        proc_pdf = path.with_name("proc_" + path.name[len("ori_"):])
+        if proc_pdf.exists():
+            logger.info("Skipping %s - %s already exists", path.name, proc_pdf.name)
+            return
         logger.info("New PDF detected: %s", path)
         threading.Thread(target=self._process_pdf, args=(path,), daemon=True).start()
 
     def _process_pdf(self, path: Path) -> None:
+        time.sleep(self.config.get("translate_debounce_s", 10))
+        proc_pdf = path.with_name("proc_" + path.name[len("ori_"):])
+        if proc_pdf.exists():
+            logger.info("Skipping %s after debounce - %s appeared", path.name, proc_pdf.name)
+            return
         with FolderHandler._sem:
             output_path = pipeline.derive_output_path(path)
             pipeline.main(str(path), str(output_path))
@@ -71,15 +80,7 @@ class FolderHandler(FileSystemEventHandler):
     
     def on_moved(self, event: FileMovedEvent) -> None:
         self._handle(event.dest_path)
-        src = Path(event.src_path).resolve()
-        dest = Path(event.dest_path)
-        renamed_to_ori = dest.name.startswith("ori_") and not src.name.startswith("ori_")
-        same_parent = src.parent.resolve() == dest.parent.resolve()
-        moved_in = not src.is_relative_to(self.watch_root)
-        if (renamed_to_ori and same_parent) or moved_in:
-            self._handle_pdf(event.dest_path)
-        else:
-            logger.debug("Ignored move: %s → %s (internal reorganization)", src.name, dest.name)
+        self._handle_pdf(event.dest_path)
 
 
 def start(folder: str, config: dict) -> None:
