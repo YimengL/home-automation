@@ -15,10 +15,8 @@ doppler run --project home-automation --config prd -- docker compose up --build
 
 ## Services
 
-| Service | Image | Role |
-|---|---|---|
-| `pdf-watch` | `ghcr.io/yimengl/private-pdf-translator:1.0.1` | Watches for `ori_*.pdf`, produces `proc_*.pdf` + `proc_*.json` |
-| `json-watch` | local build | Watches for `proc_*.json`, upserts to D1, uploads to R2, sends Telegram notification |
+Single Docker service `home-automation`: installs `private-pdf-translator` as a Python
+package and watches the mail folder for both translation and downstream stages.
 
 ## File flow
 
