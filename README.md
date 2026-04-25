@@ -20,6 +20,18 @@ doppler run --project home-automation --config prd -- docker compose up --build
 | `pdf-watch` | `ghcr.io/yimengl/private-pdf-translator:1.0.1` | Watches for `ori_*.pdf`, produces `proc_*.pdf` + `proc_*.json` |
 | `json-watch` | local build | Watches for `proc_*.json`, upserts to D1, uploads to R2, sends Telegram notification |
 
+## File flow
+
+```mermaid
+flowchart LR
+    A["ori_X.pdf"] -->|"translate<br/>(if proc_X.pdf absent)"| B["ori_X.pdf<br/>+ proc_X.pdf<br/>+ proc_X.json"]
+    B -->|"downstream<br/>+ rename"| C["ori_X.pdf<br/>+ proc_X.pdf<br/>+ done_X.json"]
+    C -.->|"rename done→proc<br/>(re-ingest)"| B
+    B -.->|"delete proc_*<br/>(re-translate)"| A
+```
+
+Solid arrows = automated by the watcher. Dashed arrows = manual recovery actions.
+
 ## Secrets (managed via Doppler)
 
 | Env var | Purpose |
